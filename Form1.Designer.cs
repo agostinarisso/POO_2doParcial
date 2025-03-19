@@ -102,6 +102,7 @@
             dataGridView3.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridView3.Size = new Size(613, 189);
             dataGridView3.TabIndex = 3;
+            dataGridView3.RowEnter += dataGridView3_RowEnter;
             // 
             // dataGridView4
             // 

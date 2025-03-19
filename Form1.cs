@@ -27,26 +27,15 @@ namespace _2doParcial
         #region Actualizacion de GRIDS
         private void dataGridView1_RowEnter(object sender, DataGridViewCellEventArgs e)
         {
-            //Ordenar los proveedores segun estado de pago, sacar la validacion de que muestre SI tiene pendientes o no.
             if (dataGridView1.CurrentRow != null)
             {
                 Negocio negocioSeleccionado = (Negocio)dataGridView1.SelectedRows[0].DataBoundItem;
-                if (negocioSeleccionado.Pagos.Count > 0)
-                {
-                    var proveedoresConPagosPendientes = negocioSeleccionado.Proveedores
-                    .Where(p => p.Pagos.Any(pago => !pago.Estado))
-                    .ToList();
-                    dataGridView3.DataSource = null;
-                    dataGridView3.DataSource = proveedoresConPagosPendientes;
-                }
-                else
-                {
-                    var proveedoresSinPagosPendientes = negocioSeleccionado.Proveedores
-                        .Where(p => p.Pagos.Any(pago => pago.Estado))
-                        .ToList();
-                    dataGridView3.DataSource = proveedoresSinPagosPendientes;
-                }
 
+                var proveedoresOrdenados = negocioSeleccionado.Proveedores
+                  .OrderByDescending(p => p.Pagos.Any(pago => pago.Estado))
+                  .ToList();
+                dataGridView3.DataSource = null;
+                dataGridView3.DataSource = proveedoresOrdenados;
             }
         }
         private void dataGridView2_RowEnter(object sender, DataGridViewCellEventArgs e)
@@ -54,21 +43,20 @@ namespace _2doParcial
             if (dataGridView2.CurrentRow != null)
             {
                 Proveedor proveedorSeleccionado = (Proveedor)dataGridView2.SelectedRows[0].DataBoundItem;
-                if (proveedorSeleccionado.Pagos.Count > 0)
-                {
-                    var negociosConPagosPendientes = proveedorSeleccionado.Negocios
-                    .Where(n => n.Pagos.Any(pago => !pago.Estado))
+
+                var negociosOrdenados = proveedorSeleccionado.Negocios
+                    .OrderByDescending(p => p.Pagos.Any(pago => pago.Estado))
                     .ToList();
-                    dataGridView4.DataSource = null;
-                    dataGridView4.DataSource = negociosConPagosPendientes;
-                }
-                else
-                {
-                    dataGridView4.DataSource = proveedorSeleccionado.Negocios;
-                }
+                dataGridView4.DataSource = null;
+                dataGridView4.DataSource = negociosOrdenados;
+
             }
 
 
+        }
+        private void dataGridView3_RowEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            ActualizarPagos();
         }
         private void dataGridView1_SelectionChanged(object sender, EventArgs e)
         {
@@ -76,7 +64,7 @@ namespace _2doParcial
         }
         private void dataGridView2_SelectionChanged(object sender, EventArgs e)
         {
-            
+
         }
 
         #endregion
@@ -282,79 +270,66 @@ namespace _2doParcial
                 MessageBox.Show("Error al asignar el proveedor");
             }
         }
-        //Actualizar dataGridView3 y dataGridView4 al cambiar seleccion en DataGridView1 y DataGridView2
-
         private void GenerarPago()
         {
             Negocio negocioSeleccionado = (Negocio)dataGridView1.CurrentRow.DataBoundItem;
             Proveedor proveedorSeleccionado = (Proveedor)dataGridView3.CurrentRow.DataBoundItem;
-            //if (!negocioSeleccionado.Proveedores.Contains(proveedorSeleccionado))
-            //{
-            //    MessageBox.Show("El proveedor no esta asignado al negocio");
-            //    return;
-            //}
+           
             try
             {
-                int codigo = Convert.ToInt32(Interaction.InputBox("Ingrese el codigo del pago"));
-                decimal importe = Convert.ToDecimal(Interaction.InputBox("Ingrese el monto del pago"));
-                DateTime fecha = Convert.ToDateTime(Interaction.InputBox("Ingrese la fecha devencimiento del pago"));
-                string medioDePago = Interaction.InputBox("Ingrese el medio de pago (Efectivo / tarjeta)").ToLower();
+                int codigo = Convert.ToInt32(Interaction.InputBox("Ingrese el codigo del pago", "Codigo"));
+                DateTime fecha = Convert.ToDateTime(Interaction.InputBox("Ingrese la fecha devencimiento del pago", "FechaVencimiento"));
+                decimal importe = Convert.ToDecimal(Interaction.InputBox("Ingrese el monto del pago", "Importe"));
+                string medioDePago = Interaction.InputBox("Ingrese el medio de pago (efectivo / tarjeta)", "TipoPago");
                 Pago nuevoPago;
+                switch (medioDePago.ToLower())
+                {
+                    case "efectivo":
+                        nuevoPago = new PagoEfectivo(codigo, fecha, importe, false);
+                        break;
+                    case "tarjeta":
+                        nuevoPago = new PagoTarjeta(codigo, fecha, importe, false);
+                        break;
+                    default:
+                        MessageBox.Show("Medio de pago incorrecto");
+                        return;
+                }
+                nuevoPago.PagoSuperado += NuevoPago_PagoSuperado;
 
-                if (medioDePago == "efectivo")
+                if (importe > 10000)
                 {
-                    nuevoPago = new PagoEfectivo
-                    {
-                        Codigo = codigo,
-                        Importe = importe,
-                        FechaVencimiento = fecha,
-                        Estado = false
-                    };
+                    nuevoPago.OnPagoSuperado(new DelegadoPagoSuperado(nuevoPago, importe));
                 }
-                else if (medioDePago == "tarjeta")
-                {
-                    nuevoPago = new PagoTarjeta
-                    {
-                        Codigo = codigo,
-                        Importe = importe,
-                        FechaVencimiento = fecha,
-                        Estado = false
-                    };
-                }
-                else
-                {
-                    MessageBox.Show("Medio de pago incorrecto");
-                    return;
-                }
+
                 negocioSeleccionado.GenerarPago(nuevoPago);
                 proveedorSeleccionado.Pagos.Add(nuevoPago);
                 ActualizarPagos();
-
-                //listaPagos.Add(nuevoPago);
-                //dataGridView5.DataSource = null;
-                //dataGridView5.DataSource = listaPagos;
 
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error al generar el pago");
             }
-
-
+        }
+        private void NuevoPago_PagoSuperado(object sender, DelegadoPagoSuperado e)
+        {
+            MessageBox.Show($"El pago ha sido superado: { e.Total}");
         }
         private void ActualizarPagos()
         {
-            if (dataGridView1.SelectedRows.Count > 0)
+            if (dataGridView1.SelectedRows.Count > 0 && dataGridView3.SelectedRows.Count >0)
             {
                 Negocio negocioSeleccionado = dataGridView1.SelectedRows[0].DataBoundItem as Negocio;
-             
-                if (negocioSeleccionado != null )
+                Proveedor proveedorSeleccionado = dataGridView3.SelectedRows[0].DataBoundItem as Proveedor;
+
+                if (negocioSeleccionado != null & proveedorSeleccionado != null)
                 {
-                    var pagosDelNegocio = negocioSeleccionado.Proveedores
-                        .SelectMany(p => p.Pagos)
+                    var pagosDelNegocioyProveedor = negocioSeleccionado.Pagos
+                        .Where(p => proveedorSeleccionado.Pagos.Contains(p))
+                        .OrderBy(p => p.FechaVencimiento)
                         .ToList();
                     dataGridView5.DataSource = null;
-                    dataGridView5.DataSource = pagosDelNegocio;
+                    dataGridView5.DataSource = pagosDelNegocioyProveedor;
                 }
                 else
                 {
@@ -362,6 +337,7 @@ namespace _2doParcial
                 }
                 var todosLosPagos = listaProveedores
                     .SelectMany(p => p.Pagos)
+                    .OrderBy(p => p.Estado)
                     .ToList();
                 dataGridView6.DataSource = null;
                 dataGridView6.DataSource = todosLosPagos;
@@ -376,15 +352,7 @@ namespace _2doParcial
                 decimal recargo = 0;
                 if (DateTime.Now > pagoSeleccionado.FechaVencimiento)
                 {
-                    if (pagoSeleccionado is PagoEfectivo)
-                    {
-                        
-                        recargo = pagoSeleccionado.Importe * 0.01M;
-                    }
-                    else if (pagoSeleccionado is PagoTarjeta)
-                    {
-                        recargo = pagoSeleccionado.Importe * 0.02M;
-                    }
+                    recargo = pagoSeleccionado.CalcularRecargo();
 
                 }
                 decimal totalAbonado = pagoSeleccionado.Importe + recargo;
@@ -401,8 +369,8 @@ namespace _2doParcial
                     p.Codigo,
                     p.FechaVencimiento,
                     p.Importe,
-                    Recargo = p.Estado ? (p is PagoEfectivo ? p.Importe * 0.01m : (p is PagoTarjeta ? p.Importe * 0.10m : 0)) : 0,
-                    TotalAbonado = p.Estado ? p.Importe + (p is PagoEfectivo ? p.Importe * 0.01m : (p is PagoTarjeta ? p.Importe * 0.10m : 0)) : 0,
+                    Recargo = p.Estado ? p.CalcularRecargo() : 0,
+                    TotalAbonado = p.Estado ? p.Importe + p.CalcularRecargo() : 0,
                     Estado = p.Estado ? "Cancelado" : "Pendiente"
                 }).ToList();
 
@@ -415,10 +383,6 @@ namespace _2doParcial
                 MessageBox.Show("Seleccione un pago");
             }
         }
-
-
-
-
         #endregion
         #region BOTONES
         private void label1_Click(object sender, EventArgs e)
@@ -480,6 +444,7 @@ namespace _2doParcial
         #endregion
 
 
-        
+
+
     }
 }

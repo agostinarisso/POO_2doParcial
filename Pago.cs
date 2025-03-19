@@ -6,20 +6,32 @@ using System.Threading.Tasks;
 
 namespace _2doParcial
 {
-    internal abstract class Pago
+    public abstract class Pago
     {
+        public EventHandler<DelegadoPagoSuperado> PagoSuperado;
         public int Codigo { get; set; }
         public DateTime FechaVencimiento { get; set; }
         public decimal Importe { get; set; }
         public bool Estado { get; set; }
         public abstract decimal CalcularRecargo();
-        public decimal CancelarPago()
+        //public decimal CancelarPago()
+        //{
+        //    decimal recargo = CalcularRecargo();
+        //    decimal totalAbonado = Importe + recargo;
+        //    Estado = true;
+
+        //    // Desencadenar el evento si el monto del pago supera los 10,000
+        //    if (totalAbonado > 10000)
+        //    {
+        //        OnPagoSuperado(new DelegadoPagoSuperado(this, totalAbonado));
+        //    }
+
+        //    return totalAbonado;
+        //}
+
+        public virtual void OnPagoSuperado(DelegadoPagoSuperado e)
         {
-            Estado = true;
-            decimal recargo = DateTime.Now > FechaVencimiento ? CalcularRecargo() : 0;
-            decimal total = Importe + recargo;
-            //Agregar el evento para cuando el pago es > 10000
-            return total;
+            PagoSuperado?.Invoke(this, e);
         }
 
 
