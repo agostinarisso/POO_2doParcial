@@ -21,13 +21,5 @@ namespace _2doParcial
             var recargo = Importe * 0.10M;
             return recargo;
         }
-
-        //Constructor PagoTarjeta
-        
-        ////Método para crear un pago con tarjeta
-        //public static PagoTarjeta CrearPagoTarjeta(int codigo, DateTime fechaVencimiento, decimal importe, bool estado)
-        //{
-        //    return new PagoTarjeta(codigo, fechaVencimiento, importe, estado);
-        //}
     }
 }

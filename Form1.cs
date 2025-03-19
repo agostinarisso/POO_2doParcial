@@ -377,8 +377,7 @@ namespace _2doParcial
                 dataGridView6.DataSource = null;
                 dataGridView6.DataSource = pagosDiscriminados;
 
-            }
-            catch
+            }catch
             {
                 MessageBox.Show("Seleccione un pago");
             }
